@@ -32,6 +32,8 @@ def validate_probe(data: dict) -> dict:
     except (ValueError, ZeroDivisionError) as exc:
         raise InvalidMedia("Unable to determine the video frame rate") from exc
     audio = next((stream for stream in streams if stream.get("codec_type") == "audio"), None)
+    if not 0 < fps <= 240:
+        raise InvalidMedia("Unable to determine a supported video frame rate")
     return {
         "duration": duration,
         "width": width,

@@ -9,7 +9,14 @@ def probe(**values):
     return {
         "format": {"duration": "25", "format_name": "mov,mp4"},
         "streams": [
-            {"codec_type": "video", "codec_name": "h264", "width": 1080, "height": 1920, **values}
+            {
+                "codec_type": "video",
+                "codec_name": "h264",
+                "avg_frame_rate": "30/1",
+                "width": 1080,
+                "height": 1920,
+                **values,
+            }
         ],
     }
 

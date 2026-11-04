@@ -122,7 +122,7 @@ async def callback(platform: str, state: str, db: Db, code: str = "", error: str
                     "grant_type": "authorization_code",
                     "code": code,
                     "redirect_uri": f"{settings.api_url}/api/v1/oauth/tiktok/callback",
-                    "code_verifier": decrypt(row.verifier),
+                    "code_verifier": decrypt(row.verifier or ""),
                 },
             )
             response = await client.get(

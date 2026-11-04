@@ -45,7 +45,7 @@ async def current_user(
     user = await db.get(User, user_id)
     if user is None:
         # The lock serializes first-login provisioning across API processes.
-        if db.bind.dialect.name == "postgresql":
+        if db.get_bind().dialect.name == "postgresql":
             from sqlalchemy import text
 
             await db.execute(

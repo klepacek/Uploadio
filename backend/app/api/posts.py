@@ -7,7 +7,14 @@ from sqlalchemy import func, select
 from app.core.auth import CurrentWorkspace, Db
 from app.core.config import get_settings
 from app.models.entities import MediaAsset, Post, PostTarget, SocialAccount
-from app.schemas.posts import DispatchInput, PostInput, PostOutput, ScheduleInput, TargetOutput
+from app.schemas.posts import (
+    DispatchInput,
+    PostInput,
+    PostOutput,
+    ScheduleInput,
+    TargetInput,
+    TargetOutput,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["posts"])
 EDITABLE = {"draft", "cancelled"}
@@ -123,7 +130,7 @@ async def validate_post(data: PostInput, db: Db, workspace_id: uuid.UUID):
             duration = meta.get("duration", 0)
             if not 3 <= duration <= (60 if target.format == "story" else 900):
                 raise HTTPException(422, "Video duration is not supported for this format")
-            if target.format == "story" and (target.caption or data.caption):
+            if target.format == "story" and target.caption:
                 raise HTTPException(422, "Instagram Stories do not support captions")
             continue
         if not target.format.startswith("tiktok_"):
@@ -152,8 +159,8 @@ async def create_post(data: PostInput, db: Db, workspace: CurrentWorkspace):
     )
     db.add(post)
     await db.flush()
-    for target in data.targets:
-        db.add(PostTarget(post_id=post.id, **target.model_dump()))
+    for destination in data.targets:
+        db.add(PostTarget(post_id=post.id, **destination.model_dump()))
     await db.flush()
     return await output(post, db)
 
@@ -191,8 +198,8 @@ async def update_post(post_id: uuid.UUID, data: PostInput, db: Db, workspace: Cu
         await db.delete(target)
     await db.flush()
     post.media_id, post.caption, post.timezone = data.media_id, data.caption, data.timezone
-    for target in data.targets:
-        db.add(PostTarget(post_id=post.id, **target.model_dump()))
+    for destination in data.targets:
+        db.add(PostTarget(post_id=post.id, **destination.model_dump()))
     await db.flush()
     return await output(post, db)
 
@@ -220,12 +227,14 @@ async def dispatch(
             caption=post.caption,
             timezone=post.timezone,
             targets=[
-                {
-                    "account_id": t.account_id,
-                    "format": t.format,
-                    "caption": t.caption,
-                    "settings": t.settings,
-                }
+                TargetInput.model_validate(
+                    {
+                        "account_id": t.account_id,
+                        "format": t.format,
+                        "caption": t.caption,
+                        "settings": t.settings,
+                    }
+                )
                 for t in targets
             ],
         ),

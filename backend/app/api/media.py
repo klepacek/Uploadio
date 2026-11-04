@@ -47,7 +47,7 @@ async def upload_url(data: UploadRequest, db: Db, workspace: CurrentWorkspace):
             MediaAsset.workspace_id == workspace.id
         )
     )
-    if used + data.size_bytes > settings.workspace_quota_bytes:
+    if (used or 0) + data.size_bytes > settings.workspace_quota_bytes:
         raise HTTPException(409, "Workspace storage quota exceeded")
     media_id = uuid.uuid4()
     key = f"staging/{workspace.id}/{media_id}/source"

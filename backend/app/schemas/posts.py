@@ -2,16 +2,29 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool
 
 from app.schemas.users import ProfileUpdate
+
+
+class TargetSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    privacy_level: (
+        Literal["PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY"]
+        | None
+    ) = None
+    disable_comment: StrictBool = True
+    disable_duet: StrictBool = True
+    disable_stitch: StrictBool = True
+    brand_content_toggle: StrictBool = False
+    brand_organic_toggle: StrictBool = False
 
 
 class TargetInput(BaseModel):
     account_id: uuid.UUID
     format: Literal["reel", "story", "tiktok_draft", "tiktok_direct"]
     caption: str = Field(default="", max_length=2200)
-    settings: dict = Field(default_factory=dict)
+    settings: TargetSettings = Field(default_factory=TargetSettings)
 
 
 class PostInput(BaseModel):

@@ -10,17 +10,22 @@ from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.middleware import SecurityMiddleware
 
+
+def safe_sentry_event(event, hint):
+    return {
+        "event_id": event.get("event_id"),
+        "level": "error",
+        "message": "Uploadio unhandled error",
+    }
+
+
 settings = get_settings()
 if settings.sentry_dsn:
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         send_default_pii=False,
         include_local_variables=False,
-        before_send=lambda event, hint: {
-            "event_id": event.get("event_id"),
-            "level": "error",
-            "message": "Uploadio unhandled error",
-        },
+        before_send=safe_sentry_event,
     )
 
 app = FastAPI(title="Uploadio API", version="0.1.0")
