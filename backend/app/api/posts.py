@@ -91,8 +91,22 @@ async def validate_post(data: PostInput, db: Db, workspace_id: uuid.UUID):
         )
         if account is None or account.status != "connected":
             raise HTTPException(422, "Selected account is unavailable")
-        if account.platform != "tiktok" or not target.format.startswith("tiktok_"):
-            raise HTTPException(422, "Instagram publishing awaits specification verification")
+        if account.platform == "instagram":
+            if target.format not in {"reel", "story"}:
+                raise HTTPException(422, "Choose an Instagram publishing format")
+            if "instagram_business_content_publish" not in account.scopes:
+                raise HTTPException(422, "Instagram publishing permission is missing")
+            if target.format == "story" and account.details.get("account_type") != "BUSINESS":
+                raise HTTPException(422, "Stories require an eligible Instagram business account")
+            meta = media.metadata_
+            duration = meta.get("duration", 0)
+            if not 3 <= duration <= (60 if target.format == "story" else 900):
+                raise HTTPException(422, "Video duration is not supported for this format")
+            if target.format == "story" and (target.caption or data.caption):
+                raise HTTPException(422, "Instagram Stories do not support captions")
+            continue
+        if not target.format.startswith("tiktok_"):
+            raise HTTPException(422, "Choose a TikTok publishing format")
         scope = "video.publish" if target.format == "tiktok_direct" else "video.upload"
         if scope not in account.scopes:
             raise HTTPException(422, f"Account is missing {scope} permission")

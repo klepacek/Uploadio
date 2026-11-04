@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
-from app.integrations import tiktok
+from app.integrations import instagram, tiktok
 from app.models.entities import MediaAsset, Post, PostTarget, PublishAttempt, SocialAccount
-from app.services.accounts import access_token
-from app.services.storage import storage
+from app.services.accounts import access_token, utc
+from app.services.storage import media_url, storage
 
 settings = get_settings()
 celery_app = Celery("uploadio", broker=settings.redis_url)
@@ -170,8 +170,18 @@ async def run_target(target_id: uuid.UUID, factory=None):
             async with httpx.AsyncClient(timeout=120, follow_redirects=False) as client:
                 token = await access_token(account, client)
                 await db.commit()
-                if account.platform != "tiktok":
-                    raise tiktok.PlatformError("instagram_not_verified")
+                if account.platform == "instagram":
+                    target.container_id = await instagram.create_container(
+                        client,
+                        token,
+                        account.external_id,
+                        target.format,
+                        media_url(media.object_key),
+                        target.caption or post.caption,
+                    )
+                    target.lease_until = datetime.now(UTC) + timedelta(minutes=1)
+                    await db.commit()
+                    return
                 data = await tiktok.initialize(
                     client,
                     token,
@@ -224,6 +234,11 @@ async def reconcile(target_id: uuid.UUID, factory=None):
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 token = await access_token(account, client)
+                if account.platform == "instagram":
+                    await reconcile_instagram(db, target, account, token, client)
+                    await finish_attempt(db, target)
+                    await db.commit()
+                    return
                 data = await tiktok.status(client, token, target.container_id)
             state = data["status"]
             if state == "PUBLISH_COMPLETE":
@@ -249,6 +264,41 @@ async def reconcile(target_id: uuid.UUID, factory=None):
             target.lease_until = datetime.now(UTC) + timedelta(minutes=5)
         await finish_attempt(db, target)
         await db.commit()
+
+
+async def reconcile_instagram(db, target, account, token, client):
+    state = await instagram.container_status(client, token, target.container_id)
+    if state == "PUBLISHED":
+        target.status = "published"
+        target.published_at = target.published_at or datetime.now(UTC)
+        target.error = None
+    elif state in {"ERROR", "EXPIRED"}:
+        target.status = "failed"
+        target.error = f"Instagram container {state.lower()}"
+    elif state == "FINISHED" and target.publish_submitted_at is None:
+        target.publish_submitted_at = datetime.now(UTC)
+        await db.commit()
+        target.external_id = await instagram.publish(
+            client, token, account.external_id, target.container_id
+        )
+        target.status = "published"
+        target.published_at = datetime.now(UTC)
+        target.error = None
+        await db.commit()
+        try:
+            result = await instagram.request(
+                client, "GET", target.external_id, token, {"fields": "permalink"}
+            )
+            target.external_url = result.get("permalink")
+        except tiktok.PlatformError:
+            pass
+    elif target.publish_submitted_at and (
+        datetime.now(UTC) - utc(target.publish_submitted_at)
+    ) > timedelta(minutes=5):
+        target.status = "uncertain"
+        target.error = "Instagram did not confirm submission; review the account before retrying"
+    else:
+        target.lease_until = datetime.now(UTC) + timedelta(minutes=1)
 
 
 @celery_app.task(name="uploadio.dispatch")

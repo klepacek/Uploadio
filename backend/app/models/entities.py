@@ -120,6 +120,7 @@ class PostTarget(Identity, Base):
     error: Mapped[str | None] = mapped_column(String(500))
     attempts: Mapped[int] = mapped_column(default=0)
     lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    publish_submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint("post_id", "account_id", "format"),

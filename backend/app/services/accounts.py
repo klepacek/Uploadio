@@ -15,7 +15,17 @@ async def access_token(account: SocialAccount, client: httpx.AsyncClient) -> str
     if account.status != "connected":
         raise PlatformError("account_disconnected")
     if account.expires_at and utc(account.expires_at) <= datetime.now(UTC) + timedelta(minutes=5):
-        if account.platform != "tiktok" or not account.refresh_token:
+        if account.platform == "instagram":
+            from app.integrations import instagram
+
+            if utc(account.expires_at) <= datetime.now(UTC):
+                account.status = "expired"
+                raise PlatformError("reconnect_account")
+            data = await instagram.refresh(client, decrypt(account.access_token))
+            account.access_token = encrypt(data["access_token"])
+            account.expires_at = datetime.now(UTC) + timedelta(seconds=data["expires_in"])
+            return data["access_token"]
+        if not account.refresh_token:
             account.status = "expired"
             raise PlatformError("reconnect_account")
         try:

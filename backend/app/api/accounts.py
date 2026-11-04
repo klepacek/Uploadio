@@ -38,8 +38,12 @@ async def accounts(db: Db, workspace: CurrentWorkspace):
 
 @router.get("/social-accounts/{platform}/connect")
 async def connect(platform: str, db: Db, user: CurrentUser, workspace: CurrentWorkspace):
+    if platform == "instagram":
+        from app.api.instagram import connect as instagram_connect
+
+        return await instagram_connect(db, user, workspace)
     if platform != "tiktok":
-        raise HTTPException(503, "Instagram connection awaits official specification verification")
+        raise HTTPException(404, "Unknown OAuth provider")
     settings = get_settings()
     if not settings.tiktok_client_key or not settings.tiktok_client_secret:
         raise HTTPException(503, "TikTok OAuth is not configured")
@@ -80,6 +84,10 @@ async def connect(platform: str, db: Db, user: CurrentUser, workspace: CurrentWo
 
 @router.get("/oauth/{platform}/callback")
 async def callback(platform: str, state: str, db: Db, code: str = "", error: str = ""):
+    if platform == "instagram":
+        from app.api.instagram import callback as instagram_callback
+
+        return await instagram_callback(state, code, error, db)
     if platform != "tiktok":
         raise HTTPException(404, "Unknown OAuth provider")
     row = (
@@ -191,6 +199,20 @@ async def disconnect(account_id: uuid.UUID, db: Db, user: CurrentUser, workspace
     )
     if active:
         raise HTTPException(409, "Resolve active publishing jobs before disconnecting")
+    if account.status == "connected" and account.platform == "instagram":
+        from app.core.crypto import decrypt
+        from app.integrations import instagram
+
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                await instagram.request(
+                    client,
+                    "DELETE",
+                    f"{account.external_id}/permissions",
+                    decrypt(account.access_token),
+                )
+        except (httpx.HTTPError, tiktok.PlatformError) as exc:
+            raise HTTPException(502, "Token revocation failed; retry disconnection") from exc
     if account.status == "connected" and account.platform == "tiktok":
         from app.core.crypto import decrypt
 
