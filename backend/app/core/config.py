@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    rate_limit_enabled: bool = True
     database_url: str = "postgresql+asyncpg://uploadio:uploadio@localhost:5432/uploadio"
     redis_url: str = "redis://localhost:6379/0"
     frontend_url: str = "http://localhost:3000"

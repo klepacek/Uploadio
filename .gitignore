@@ -10,3 +10,7 @@ node_modules/
 .next/
 coverage/
 .DS_Store
+*.tsbuildinfo
+.mypy_cache/
+test-results/
+playwright-report/

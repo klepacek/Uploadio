@@ -1,1 +1,45 @@
-{"name":"uploadio-web","version":"0.1.0","private":true,"author":"Vojtěch Klepáček","scripts":{"dev":"next dev --hostname 0.0.0.0","build":"next build","start":"next start --hostname 0.0.0.0","lint":"eslint .","typecheck":"tsc --noEmit","test":"vitest run"},"dependencies":{"next":"^16.0.0","react":"^19.2.0","react-dom":"^19.2.0","@supabase/supabase-js":"2.80.0","@tanstack/react-query":"^5.90.0","react-hook-form":"^7.65.0","@hookform/resolvers":"^5.2.0","zod":"^4.1.0","lucide-react":"^0.553.0","class-variance-authority":"^0.7.1","clsx":"^2.1.1","tailwind-merge":"^3.3.0","@radix-ui/react-slot":"^1.2.3"},"devDependencies":{"typescript":"^5.9.0","@types/node":"^24.0.0","@types/react":"^19.2.0","@types/react-dom":"^19.2.0","tailwindcss":"^4.1.0","@tailwindcss/postcss":"^4.1.0","eslint":"^9.0.0","eslint-config-next":"^16.0.0","vitest":"^4.0.0"}}
+{
+  "name": "uploadio-web",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Vojt\u011bch Klep\u00e1\u010dek",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build --webpack",
+    "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.0",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@supabase/supabase-js": "2.80.0",
+    "@tanstack/react-query": "^5.90.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.553.0",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.65.0",
+    "tailwind-merge": "^3.3.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}
