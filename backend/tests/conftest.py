@@ -76,3 +76,10 @@ async def post_payload(db, user):
         "timezone": "Europe/Prague",
         "targets": [{"account_id": str(account.id), "format": "tiktok_draft"}],
     }
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limit(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "rate_limit_enabled", False)

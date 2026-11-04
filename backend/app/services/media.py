@@ -1,6 +1,7 @@
 import json
 import subprocess
 import tempfile
+from fractions import Fraction
 from pathlib import Path
 
 from app.core.config import get_settings
@@ -26,7 +27,28 @@ def validate_probe(data: dict) -> dict:
     formats = data.get("format", {}).get("format_name", "").split(",")
     if not set(formats) & {"mov", "mp4"}:
         raise InvalidMedia("Upload an MP4 or MOV file")
-    return {"duration": duration, "width": width, "height": height, "codec": video["codec_name"]}
+    try:
+        fps = float(Fraction(video.get("avg_frame_rate", "0/1")))
+    except (ValueError, ZeroDivisionError) as exc:
+        raise InvalidMedia("Unable to determine the video frame rate") from exc
+    audio = next((stream for stream in streams if stream.get("codec_type") == "audio"), None)
+    return {
+        "duration": duration,
+        "width": width,
+        "height": height,
+        "codec": video["codec_name"],
+        "fps": fps,
+        "pixel_format": video.get("pix_fmt"),
+        "field_order": video.get("field_order"),
+        "video_bitrate": int(video.get("bit_rate", 0)),
+        "audio": {
+            "codec": audio.get("codec_name"),
+            "sample_rate": int(audio.get("sample_rate", 0)),
+            "channels": audio.get("channels", 0),
+        }
+        if audio
+        else None,
+    }
 
 
 def inspect_upload(key: str, expected_size: int) -> tuple[dict, str]:
@@ -92,14 +114,15 @@ def inspect_upload(key: str, expected_size: int) -> tuple[dict, str]:
             )
         except (subprocess.SubprocessError, json.JSONDecodeError) as exc:
             raise InvalidMedia("Unable to read video; check its format") from exc
-        thumbnail_key = f"{key}.jpg"
+        thumbnail_key = f"{key.replace('staging/', 'media/', 1)}.jpg"
         client.upload_file(
             str(thumbnail), bucket, thumbnail_key, ExtraArgs={"ContentType": "image/jpeg"}
         )
     client.copy_object(
         Bucket=bucket,
-        Key=f"{key}.validated",
+        Key=key.replace("staging/", "media/", 1),
         CopySource={"Bucket": bucket, "Key": key},
         CopySourceIfMatch=head["ETag"],
     )
+    client.delete_object(Bucket=bucket, Key=key)
     return metadata, thumbnail_key

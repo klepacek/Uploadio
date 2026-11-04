@@ -247,9 +247,7 @@ async def reconcile(target_id: uuid.UUID, factory=None):
                 ids = data.get("publicaly_available_post_id", [])
                 if ids:
                     target.external_id = str(ids[0])
-                    target.external_url = (
-                        f"https://www.tiktok.com/@{account.username}/video/{ids[0]}"
-                    )
+
                 target.error = None
             elif state == "SEND_TO_USER_INBOX":
                 target.status = "draft_uploaded"

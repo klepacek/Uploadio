@@ -99,6 +99,27 @@ async def validate_post(data: PostInput, db: Db, workspace_id: uuid.UUID):
             if target.format == "story" and account.details.get("account_type") != "BUSINESS":
                 raise HTTPException(422, "Stories require an eligible Instagram business account")
             meta = media.metadata_
+            max_size = 100_000_000 if target.format == "story" else 300_000_000
+            ratio = meta.get("width", 1) / max(1, meta.get("height", 1))
+            if media.size_bytes > max_size or meta.get("width", 0) > 1920:
+                raise HTTPException(422, "Instagram video exceeds file size or 1920px width limit")
+            if not (0.1 if target.format == "story" else 0.01) <= ratio <= 10:
+                raise HTTPException(422, "Instagram does not support this aspect ratio")
+            if meta.get("fps") is not None and not 23 <= meta["fps"] <= 60:
+                raise HTTPException(422, "Instagram requires 23 to 60 frames per second")
+            audio = meta.get("audio")
+            if audio and (
+                audio.get("codec") != "aac"
+                or audio.get("sample_rate", 0) > 48000
+                or audio.get("channels", 0) not in {1, 2}
+            ):
+                raise HTTPException(
+                    422, "Instagram requires AAC audio, up to 48kHz, mono or stereo"
+                )
+            if meta.get("pixel_format") not in {None, "yuv420p", "yuvj420p"}:
+                raise HTTPException(422, "Instagram requires 4:2:0 video")
+            if meta.get("video_bitrate", 0) > 25_000_000:
+                raise HTTPException(422, "Instagram video bitrate must not exceed 25Mbps")
             duration = meta.get("duration", 0)
             if not 3 <= duration <= (60 if target.format == "story" else 900):
                 raise HTTPException(422, "Video duration is not supported for this format")
