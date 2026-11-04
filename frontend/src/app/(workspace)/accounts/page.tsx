@@ -72,7 +72,14 @@ export default function Accounts() {
               Reels and eligible Stories require a professional account and Meta
               app approval.
             </p>
-            <span className="badge">Integration pending verification</span>
+            <Button
+              variant="outline"
+              disabled={connect.isPending}
+              onClick={() => connect.mutate("instagram")}
+            >
+              <Plus size={15} />
+              Connect Instagram
+            </Button>
           </div>
         </section>
       </div>

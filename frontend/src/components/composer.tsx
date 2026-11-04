@@ -10,7 +10,7 @@ import { MediaLibrary } from "./media-library";
 import { Button } from "./ui/button";
 type Destination = {
   account_id: string;
-  format: "tiktok_draft" | "tiktok_direct";
+  format: "tiktok_draft" | "tiktok_direct" | "reel" | "story";
   caption: string;
   settings: Record<string, unknown>;
 };
@@ -81,7 +81,7 @@ export function Composer() {
         ...targets,
         {
           account_id: account.id,
-          format: "tiktok_draft",
+          format: account.platform === "instagram" ? "reel" : "tiktok_draft",
           caption: "",
           settings: {
             disable_comment: true,
@@ -90,7 +90,7 @@ export function Composer() {
           },
         },
       ]);
-      creatorMutation.mutate(account.id);
+      if (account.platform === "tiktok") creatorMutation.mutate(account.id);
     }
   }
   function update(index: number, data: Partial<Destination>) {
@@ -106,8 +106,13 @@ export function Composer() {
       if (caption.length > 2200 || targets.some((t) => t.caption.length > 2200))
         throw new Error("Captions must be at most 2,200 characters.");
       if (action !== "draft" && !consent)
-        throw new Error("Confirm consent before sending to TikTok.");
-      if (action !== "draft" && targets.some((t) => !creator[t.account_id]))
+        throw new Error("Confirm consent before publishing.");
+      if (
+        action !== "draft" &&
+        targets.some(
+          (t) => t.format.startsWith("tiktok_") && !creator[t.account_id],
+        )
+      )
         throw new Error(
           "Refresh creator information for every selected account.",
         );
@@ -279,9 +284,18 @@ export function Composer() {
                                   })
                                 }
                               >
-                                <option value="tiktok_draft">
-                                  Upload to TikTok inbox
-                                </option>
+                                {a.platform === "instagram" ? (
+                                  <>
+                                    <option value="reel">Instagram Reel</option>
+                                    <option value="story">
+                                      Instagram Story
+                                    </option>
+                                  </>
+                                ) : (
+                                  <option value="tiktok_draft">
+                                    Upload to TikTok inbox
+                                  </option>
+                                )}
                                 {a.scopes.includes("video.publish") && (
                                   <option value="tiktok_direct">
                                     Direct Post
@@ -289,25 +303,28 @@ export function Composer() {
                                 )}
                               </select>
                             </div>
-                            {info ? (
-                              <p className="subtle">
-                                Posting as {info.creator_nickname} · maximum{" "}
-                                {info.max_video_post_duration_sec}s
-                              </p>
-                            ) : (
-                              <p className="subtle">
-                                Creator information is required before
-                                publishing.
-                              </p>
+                            {a.platform === "tiktok" &&
+                              (info ? (
+                                <p className="subtle">
+                                  Posting as {info.creator_nickname} · maximum{" "}
+                                  {info.max_video_post_duration_sec}s
+                                </p>
+                              ) : (
+                                <p className="subtle">
+                                  Creator information is required before
+                                  publishing.
+                                </p>
+                              ))}
+                            {a.platform === "tiktok" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={creatorMutation.isPending}
+                                onClick={() => creatorMutation.mutate(a.id)}
+                              >
+                                Refresh creator information
+                              </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={creatorMutation.isPending}
-                              onClick={() => creatorMutation.mutate(a.id)}
-                            >
-                              Refresh creator information
-                            </Button>
                             {target.format === "tiktok_direct" && (
                               <>
                                 <div className="field">
@@ -404,7 +421,11 @@ export function Composer() {
                             <div className="note" style={{ marginBottom: 0 }}>
                               {target.format === "tiktok_draft"
                                 ? "This sends a video to your TikTok inbox. You’ll finish editing and publish it in TikTok. Captions must be added in TikTok’s editing flow."
-                                : "Direct Post requires app approval. You stay in control of privacy and interactions."}
+                                : target.format === "story"
+                                  ? "Stories do not support captions. Use an eligible business account and a video between 3 and 60 seconds."
+                                  : target.format === "reel"
+                                    ? "Reels use your shared or custom caption. Media is processed by Instagram before publication."
+                                    : "Direct Post requires app approval. You stay in control of privacy and interactions."}
                             </div>
                           </div>
                         )}
@@ -421,8 +442,8 @@ export function Composer() {
                 </p>
               )}
               <p className="subtle" style={{ marginTop: 20 }}>
-                Instagram publishing is pending official API verification and
-                approval.
+                Instagram requires a professional account and approved
+                publishing access. Stories require an eligible business account.
               </p>
             </div>
           </section>
@@ -447,7 +468,7 @@ export function Composer() {
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                 />
-                I consent to Uploadio sending this video to the selected TikTok
+                I consent to Uploadio sending this video to the selected
                 accounts using the settings above. For Direct Post, I agree to
                 TikTok’s Music Usage Confirmation.
               </label>
