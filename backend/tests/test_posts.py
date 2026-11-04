@@ -1,41 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import pytest
-from sqlalchemy import select
-
-from app.models.entities import MediaAsset, SocialAccount, Workspace
 from app.workers.tasks import claim_due, claim_target, trusted_upload_url
-
-
-@pytest.fixture
-async def post_payload(db, user):
-    workspace = await db.scalar(select(Workspace).where(Workspace.owner_id == user.id))
-    media = MediaAsset(
-        workspace_id=workspace.id,
-        object_key=str(uuid.uuid4()),
-        filename="clip.mp4",
-        content_type="video/mp4",
-        size_bytes=100,
-        status="ready",
-        metadata_={"width": 1080, "height": 1920, "duration": 30},
-    )
-    account = SocialAccount(
-        workspace_id=workspace.id,
-        platform="tiktok",
-        external_id="123",
-        username="creator",
-        access_token="encrypted",
-        scopes=["video.upload"],
-    )
-    db.add_all([media, account])
-    await db.commit()
-    return {
-        "media_id": str(media.id),
-        "caption": "Hello",
-        "timezone": "Europe/Prague",
-        "targets": [{"account_id": str(account.id), "format": "tiktok_draft"}],
-    }
 
 
 async def test_create_edit_and_isolation(client, post_payload):

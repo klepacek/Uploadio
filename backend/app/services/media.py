@@ -37,7 +37,7 @@ def inspect_upload(key: str, expected_size: int) -> tuple[dict, str]:
         raise InvalidMedia("Uploaded file size differs from the reserved size")
     with tempfile.TemporaryDirectory(prefix="uploadio-") as directory:
         source = Path(directory) / "video.mp4"
-        response = client.get_object(Bucket=bucket, Key=key)
+        response = client.get_object(Bucket=bucket, Key=key, IfMatch=head["ETag"])
         total = 0
         try:
             with source.open("wb") as output:
@@ -96,4 +96,10 @@ def inspect_upload(key: str, expected_size: int) -> tuple[dict, str]:
         client.upload_file(
             str(thumbnail), bucket, thumbnail_key, ExtraArgs={"ContentType": "image/jpeg"}
         )
+    client.copy_object(
+        Bucket=bucket,
+        Key=f"{key}.validated",
+        CopySource={"Bucket": bucket, "Key": key},
+        CopySourceIfMatch=head["ETag"],
+    )
     return metadata, thumbnail_key

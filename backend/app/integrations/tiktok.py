@@ -56,8 +56,8 @@ async def initialize(
     source = {
         "source": "FILE_UPLOAD",
         "video_size": size,
-        "chunk_size": size,
-        "total_chunk_count": 1,
+        "chunk_size": min(size, 10_000_000),
+        "total_chunk_count": max(1, size // 10_000_000),
     }
     if not direct:
         return await request(

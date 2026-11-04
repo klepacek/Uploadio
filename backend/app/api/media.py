@@ -88,6 +88,7 @@ async def complete(data: CompleteRequest, db: Db, workspace: CurrentWorkspace):
         raise HTTPException(422, str(exc)) from exc
     except ClientError as exc:
         raise HTTPException(409, "Upload not available; try again after uploading") from exc
+    media.object_key = f"{media.object_key}.validated"
     media.metadata_ = metadata
     media.thumbnail_key = thumbnail
     media.status = "ready"
@@ -122,6 +123,8 @@ async def delete_media(media_id: uuid.UUID, db: Db, workspace: CurrentWorkspace)
     if await db.scalar(select(Post.id).where(Post.media_id == media.id).limit(1)):
         raise HTTPException(409, "Delete posts using this media first")
     keys = [media.object_key]
+    if media.object_key.endswith(".validated"):
+        keys.append(media.object_key.removesuffix(".validated"))
     if media.thumbnail_key:
         keys.append(media.thumbnail_key)
     await asyncio.to_thread(
