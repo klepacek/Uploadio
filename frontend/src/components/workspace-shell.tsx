@@ -38,10 +38,20 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const auth = supabase().auth;
-      auth.getSession().then(({ data }) => {
-        if (!data.session) router.replace("/login");
-        else setReady(true);
-      });
+      auth
+        .getSession()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          if (!data.session) router.replace("/login");
+          else setReady(true);
+        })
+        .catch((error) =>
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Authentication unavailable",
+          ),
+        );
       const { data } = auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           queries.clear();
