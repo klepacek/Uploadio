@@ -88,7 +88,7 @@ Compose binds ports to localhost and uses development database credentials. Repl
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.lock
+pip install -r requirements-dev.lock
 pip install --no-deps -e .
 alembic upgrade head
 uvicorn app.main:app --reload --no-access-log

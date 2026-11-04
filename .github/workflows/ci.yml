@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - run: pip install -r requirements.lock && pip install -e '.[dev]'
+      - run: pip install -r requirements-dev.lock && pip install -e '.[dev]'
         working-directory: backend
       - run: ruff check . && ruff format --check . && mypy app && pytest
         env:
