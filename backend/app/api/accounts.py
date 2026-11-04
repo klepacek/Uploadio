@@ -171,6 +171,8 @@ async def creator(account_id: uuid.UUID, db: Db, workspace: CurrentWorkspace):
         raise HTTPException(404, "Account not found")
     if account.platform != "tiktok":
         raise HTTPException(422, "Creator information is available for TikTok")
+    if "video.publish" not in account.scopes:
+        raise HTTPException(422, "Creator information requires TikTok Direct Post permission")
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             token = await access_token(account, client)

@@ -90,7 +90,11 @@ export function Composer() {
           },
         },
       ]);
-      if (account.platform === "tiktok") creatorMutation.mutate(account.id);
+      if (
+        account.platform === "tiktok" &&
+        account.scopes.includes("video.publish")
+      )
+        creatorMutation.mutate(account.id);
     }
   }
   function update(index: number, data: Partial<Destination>) {
@@ -110,7 +114,7 @@ export function Composer() {
       if (
         action !== "draft" &&
         targets.some(
-          (t) => t.format.startsWith("tiktok_") && !creator[t.account_id],
+          (t) => t.format === "tiktok_direct" && !creator[t.account_id],
         )
       )
         throw new Error(
@@ -304,6 +308,7 @@ export function Composer() {
                               </select>
                             </div>
                             {a.platform === "tiktok" &&
+                              a.scopes.includes("video.publish") &&
                               (info ? (
                                 <p className="subtle">
                                   Posting as {info.creator_nickname} · maximum{" "}
@@ -315,16 +320,17 @@ export function Composer() {
                                   publishing.
                                 </p>
                               ))}
-                            {a.platform === "tiktok" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={creatorMutation.isPending}
-                                onClick={() => creatorMutation.mutate(a.id)}
-                              >
-                                Refresh creator information
-                              </Button>
-                            )}
+                            {a.platform === "tiktok" &&
+                              a.scopes.includes("video.publish") && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={creatorMutation.isPending}
+                                  onClick={() => creatorMutation.mutate(a.id)}
+                                >
+                                  Refresh creator information
+                                </Button>
+                              )}
                             {target.format === "tiktok_direct" && (
                               <>
                                 <div className="field">
@@ -502,7 +508,11 @@ export function Composer() {
                   onClick={() => save.mutate("publish")}
                 >
                   <Send size={15} />
-                  {save.isPending ? "Saving…" : "Send now"}
+                  {save.isPending
+                    ? "Saving…"
+                    : targets.every((t) => t.format === "tiktok_draft")
+                      ? "Send to TikTok inbox"
+                      : "Publish now"}
                 </Button>
               </div>
             </div>

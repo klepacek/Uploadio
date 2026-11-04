@@ -50,9 +50,6 @@ async def initialize(
 ) -> dict:
     if not consent:
         raise PlatformError("explicit_consent_required")
-    info = await creator_info(client, token)
-    if duration > info.get("max_video_post_duration_sec", 0):
-        raise PlatformError("creator_duration_limit")
     source = {
         "source": "FILE_UPLOAD",
         "video_size": size,
@@ -60,11 +57,16 @@ async def initialize(
         "total_chunk_count": max(1, size // 10_000_000),
     }
     if not direct:
+        if not 0 < duration <= 600:
+            raise PlatformError("draft_duration_limit")
         return await request(
             client, "post/publish/inbox/video/init", token, {"source_info": source}
         )
     if not get_settings().tiktok_direct_post_enabled:
         raise PlatformError("direct_post_approval_required")
+    info = await creator_info(client, token)
+    if duration > info.get("max_video_post_duration_sec", 0):
+        raise PlatformError("creator_duration_limit")
     privacy = settings.get("privacy_level")
     if privacy not in info.get("privacy_level_options", []):
         raise PlatformError("invalid_privacy_level")

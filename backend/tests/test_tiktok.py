@@ -114,3 +114,15 @@ async def test_platform_failures(respx_mock):
         with pytest.raises(PlatformError) as error:
             await request(client, "test", "token", {})
         assert error.value.uncertain
+
+
+async def test_inbox_upload_does_not_require_direct_post_scope(respx_mock):
+    inbox = respx_mock.post("https://open.tiktokapis.com/v2/post/publish/inbox/video/init/").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"publish_id": "draft-only"}, "error": {"code": "ok"}}
+        )
+    )
+    async with httpx.AsyncClient() as client:
+        result = await initialize(client, "upload-only-token", 100, "", {}, False, True, 30)
+    assert inbox.call_count == 1
+    assert result["publish_id"] == "draft-only"
