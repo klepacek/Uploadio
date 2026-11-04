@@ -51,7 +51,10 @@ jobs:
           done
           curl --fail http://localhost:8000/health
           curl --fail http://localhost:3000/ --output /dev/null
-          docker compose ps
+          docker compose ps -a
+          docker compose logs --no-color worker scheduler
+          docker compose exec -T worker celery -A app.workers.tasks.celery_app inspect ping --timeout 10
+          docker compose exec -T scheduler python -c 'import os; os.kill(1, 0)'
       - if: failure()
         run: docker compose logs --no-color
       - if: always()
