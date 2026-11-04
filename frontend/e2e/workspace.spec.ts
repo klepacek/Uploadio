@@ -79,6 +79,7 @@ test("empty workspace and composer use API results", async ({ page }, info) => {
     page.getByRole("alert").filter({ hasText: "Select a validated video" }),
   ).toBeVisible();
   if (info.project.name === "mobile") {
+    await expect(page.locator("nav")).toBeHidden();
     await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(
       page.getByRole("navigation", { name: "Main navigation" }),

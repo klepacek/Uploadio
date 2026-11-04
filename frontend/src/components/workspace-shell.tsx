@@ -148,6 +148,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           <div className="row">
             <button
               className="mobile-menu"
+              aria-expanded={open}
               aria-label={open ? "Close navigation" : "Open navigation"}
               onClick={() => setOpen(!open)}
             >

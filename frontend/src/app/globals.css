@@ -744,9 +744,11 @@ textarea {
 @media (max-width: 760px) {
   .sidebar {
     transform: translateX(-100%);
+    visibility: hidden;
   }
   .sidebar.open {
     transform: none;
+    visibility: visible;
     box-shadow: 0 0 0 100vw #0008;
   }
   .main-shell {
