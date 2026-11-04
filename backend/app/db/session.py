@@ -8,5 +8,9 @@ Session = async_sessionmaker(engine, expire_on_commit=False)
 
 async def get_db():
     async with Session() as session:
-        async with session.begin():
+        try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
