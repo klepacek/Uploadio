@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { api, dateLabel, Post, statusLabel } from "@/lib/api";
 import { ErrorNotice, PageHeading } from "@/components/common";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 export default function Calendar() {
   const [anchor, setAnchor] = useState(() => new Date());
@@ -145,13 +146,7 @@ export default function Calendar() {
         <span className="badge failed">Failed</span>
       </div>
       {selected && (
-        <div
-          className="dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Scheduled post"
-          onClick={() => setSelected(null)}
-        >
+        <Dialog label="Scheduled post" onClose={() => setSelected(null)}>
           <section className="panel" onClick={(e) => e.stopPropagation()}>
             <div className="panel-head">
               <h2>Post details</h2>
@@ -186,7 +181,7 @@ export default function Calendar() {
               </Button>
             </div>
           </section>
-        </div>
+        </Dialog>
       )}
     </>
   );

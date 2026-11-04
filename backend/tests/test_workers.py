@@ -98,3 +98,34 @@ async def test_partial_success(client, post_payload, db):
     await db.commit()
     data = (await client.get(f"/api/v1/posts/{post['id']}")).json()
     assert {t["status"] for t in data["targets"]} == {"published", "failed"}
+
+
+async def test_interrupted_job_recovery(client, post_payload, db, monkeypatch):
+    from datetime import timedelta
+    from unittest.mock import Mock
+
+    target_id = await setup_target(client, post_payload, db)
+    target = await db.get(PostTarget, target_id)
+    send = Mock()
+    poll = Mock()
+    monkeypatch.setattr(tasks.publish_target, "apply_async", send)
+    monkeypatch.setattr(tasks.reconcile_target, "delay", poll)
+    target.lease_until = datetime.now(UTC) - timedelta(minutes=1)
+    await db.commit()
+    await tasks.dispatch_due(factory(db))
+    assert send.call_count == 1
+    assert target.status == "queued"
+    send.reset_mock()
+    target.status = "processing"
+    target.lease_until = datetime.now(UTC) - timedelta(minutes=1)
+    await db.commit()
+    await tasks.dispatch_due(factory(db))
+    assert target.status == "uncertain"
+    send.assert_not_called()
+    target.status = "processing"
+    target.container_id = "existing-provider-job"
+    target.lease_until = datetime.now(UTC) - timedelta(minutes=1)
+    await db.commit()
+    await tasks.dispatch_due(factory(db))
+    poll.assert_called_once_with(str(target_id))
+    send.assert_not_called()

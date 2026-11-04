@@ -97,12 +97,12 @@ p {
 .primary:hover {
   background: #d8ffa0;
 }
-.outline {
+.button-outline {
   background: transparent;
   border-color: var(--line);
   color: var(--text);
 }
-.outline:hover,
+.button-outline:hover,
 .ghost:hover {
   background: #25282a;
 }
@@ -842,4 +842,17 @@ textarea {
     transition: none !important;
     animation: none !important;
   }
+}
+
+.native-dialog {
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  width: min(500px, calc(100% - 32px));
+  max-height: 85vh;
+  margin: auto;
+}
+.native-dialog::backdrop {
+  background: #000a;
 }
