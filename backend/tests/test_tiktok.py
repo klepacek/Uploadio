@@ -126,3 +126,20 @@ async def test_inbox_upload_does_not_require_direct_post_scope(respx_mock):
         result = await initialize(client, "upload-only-token", 100, "", {}, False, True, 30)
     assert inbox.call_count == 1
     assert result["publish_id"] == "draft-only"
+
+
+async def test_disconnection_does_not_hide_provider_revocation_failure(
+    client, db, post_payload, respx_mock
+):
+    from sqlalchemy import select
+
+    account = await db.scalar(select(SocialAccount))
+    account.access_token = encrypt("token")
+    await db.commit()
+    respx_mock.post("https://open.tiktokapis.com/v2/oauth/revoke/").mock(
+        return_value=httpx.Response(200, json={"error": {"code": "internal_error"}})
+    )
+    response = await client.delete(f"/api/v1/social-accounts/{account.id}")
+    assert response.status_code == 502
+    assert account.status == "connected"
+    assert decrypt(account.access_token) == "token"

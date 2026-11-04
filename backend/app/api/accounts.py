@@ -229,7 +229,10 @@ async def disconnect(account_id: uuid.UUID, db: Db, user: CurrentUser, workspace
                     },
                 )
                 response.raise_for_status()
-            except httpx.HTTPError as exc:
+                error = response.json().get("error")
+                if error and (not isinstance(error, dict) or error.get("code") != "ok"):
+                    raise HTTPException(502, "Token revocation failed; retry disconnection")
+            except (httpx.HTTPError, ValueError) as exc:
                 raise HTTPException(502, "Token revocation failed; retry disconnection") from exc
     await db.execute(
         update(PostTarget)
